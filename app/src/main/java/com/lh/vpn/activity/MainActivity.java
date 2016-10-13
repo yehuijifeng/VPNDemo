@@ -1,4 +1,4 @@
-package com.lh.vpn;
+package com.lh.vpn.activity;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -12,6 +12,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import com.lh.vpn.R;
 
 import topsec.sslvpn.svsdklib.SVSDKLib;
 

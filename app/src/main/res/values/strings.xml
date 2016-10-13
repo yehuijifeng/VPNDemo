@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">VpnDemo</string>
+    <string name="address">IPv4 地址:</string>
+    <string name="port">端口号:</string>
+    <string name="secret">密码:</string>
+    <string name="connect">链接!</string>
+
+    <string name="connecting">VPN 连接中……</string>
+    <string name="connected">VPN 已连接</string>
+    <string name="disconnected">VPN 已断开</string>
+    <string name="error">Cannot protect the tunnel</string>
 </resources>

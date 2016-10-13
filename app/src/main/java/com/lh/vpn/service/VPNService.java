@@ -1,132 +1,339 @@
 package com.lh.vpn.service;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.VpnService;
+import android.os.Handler;
+import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.lh.vpn.R;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 
 /**
  * Created by LuHao on 2016/10/11.
  * VpnService类封装了建立VPN连接所必须的所有函数
+ * <p/>
+ * 在Apache许可下的,2.0版本(“许可证”);
+ * 你可能不使用这个文件除了遵守许可证。
+ * 你可以获得许可证的副本
+ * <p/>
+ * http://www.apache.org/licenses/license - 2.0
+ * <p/>
+ * 除非适用法律要求或书面同意,软件
+ * 在许可证下发布的分布在一个“目前的”基础上,
+ * 没有任何形式的保证或条件,明示或默示。
+ * 查看许可证的管理权限和特定的语言
+ * 限制下的许可。
  */
-public class VPNService extends VpnService {
+public class VPNService extends VpnService implements Handler.Callback, Runnable {
 
+    private static final String TAG = "VPNService";
 
-    public void initService(Context context) {
-        /**
-         * 建立链接的第一步是要用合适的参数，
-         * 创建并初始化好tun0虚拟网络端口，
-         * 这可以通过在VpnService类中的一个内部类Builder来做到：
-         * */
-        /**
-         *在正式建立（establish）虚拟网络接口之前，需要设置好几个参数，分别是：
+    private String mServerAddress;
+    private String mServerPort;
+    private byte[] mSharedSecret;
+    private PendingIntent mConfigureIntent;
 
-         1）MTU（Maximun Transmission Unit），即表示虚拟网络端口的最大传输单元，
-         如果发送的包长度超过这个数字，则会被分包；
+    private Handler mHandler;
+    private Thread mThread;
 
-         2）Address，即这个虚拟网络端口的IP地址；
+    private ParcelFileDescriptor mInterface;
+    private String mParameters;
 
-         3）Route，只有匹配上的IP包，才会被路由到虚拟端口上去。
-         如果是0.0.0.0/0的话，则会将所有的IP包都路由到虚拟端口上去；
-
-         4）DNS Server，就是该端口的DNS服务器地址；
-
-         5）Search Domain，就是添加DNS域名的自动补齐。
-         DNS服务器必须通过全域名进行搜索，但每次查找都输入全域名太麻烦了，可以通过配置域名的自动补齐规则予以简化；
-
-         6）Session，就是你要建立的VPN连接的名字，它将会在系统管理的与VPN连接相关的通知栏和对话框中显示出来；
-
-         7）Configure Intent，这个intent指向一个配置页面，用来配置VPN链接。
-         它不是必须的，如果没设置的话，则系统弹出的VPN相关对话框中不会出现配置按钮。
-
-         **/
-        Builder builder = new Builder();
-        builder.setMtu(...);
-        builder.addAddress(...);
-        builder.addRoute(...);
-        builder.addDnsServer(...);
-        builder.addSearchDomain(...);
-        builder.setSession(...);
-        builder.setConfigureIntent(...);
-        //最后调用Builder.establish函数，如果一切正常的话，tun0虚拟网络接口就建立完成了。
-        // 并且，同时还会通过iptables命令，修改NAT表，将所有数据转发到tun0接口上。
-        builder.establish();//函数
-
-        ParcelFileDescriptor interfaces = builder.establish();
-
-        /**
-         * 这之后，就可以通过读写VpnService.Builder返回的ParcelFileDescriptor实例
-         * 来获得设备上所有向外发送的IP数据包和返回处理过后的IP数据包到TCP/IP协议栈：
-         * */
-
-        // Packets to be sent are queued in this input stream.
-        FileInputStream in = new FileInputStream(interfaces.getFileDescriptor());
-        // Packets received need to be written to this output stream.
-        FileOutputStream out = new FileOutputStream(interfaces.getFileDescriptor());
-        // Allocate the buffer for a single packet.
-        ByteBuffer packet = ByteBuffer.allocate(32767);
-        try {
-            // Read packets sending to this interface
-            int length = in.read(packet.array());
-            // Write response packets back
-            out.write(packet.array(), 0, length);
-        } catch (IOException e) {
-            e.printStackTrace();
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        //这个程序只是用来显示信息的
+        if (mHandler == null) {
+            mHandler = new Handler(this);
         }
 
-        OWLVpnProfileEditor pptp = new OWLPptpProfileEditor(this);
-        pptp.onSave();
-        OWLVpnProfileEditor lwtpIpsec = new OWLL2tpIpsecPskProfileEditor(this);
-        lwtpIpsec.onSave();
+        // 在连接新的线程之前，先停止旧的线程工作
+        if (mThread != null) {
+            mThread.interrupt();
+        }
 
-        VpnActor actor = new VpnActor(getApplicationContext());
-        actor.connect(profile);
+        //提取意图中的信息
+        String prefix = getPackageName();
+        mServerAddress = intent.getStringExtra(prefix + ".ADDRESS");
+        mServerPort = intent.getStringExtra(prefix + ".PORT");
+        mSharedSecret = intent.getStringExtra(prefix + ".SECRET").getBytes();
 
+        // 通过创建一个新线程启动一个新的会话。
+        mThread = new Thread(this, "VpnThread");
+        mThread.start();
+        return START_STICKY;
     }
 
-    private void registerReceivers() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_VPN_CONNECTIVITY);
-        stateBroadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(final Context context, final Intent intent) {
-                String action = intent.getAction();
+    @Override
+    public void onDestroy() {
+        if (mThread != null) {
+            mThread.interrupt();
+        }
+    }
 
-                if (ACTION_VPN_CONNECTIVITY.equals(action)) {
-                    onStateChanged(intent);
-                } else {
-                    Log.d(TAG, "VPNSettings receiver ignores intent:" + intent); //$NON-NLS-1$
+    @Override
+    public boolean handleMessage(Message message) {
+        if (message != null) {
+            Toast.makeText(this, message.what, Toast.LENGTH_SHORT).show();
+        }
+        return true;
+    }
+
+    @Override
+    public synchronized void run() {
+        try {
+            Log.i(TAG, "Starting");
+
+            //如果有任何需要使用网络,让它现在。
+            //这大大减少了复杂性的无缝交接
+            //试图重现隧道在不关闭一切。
+            //在这个演示中,所有我们需要知道的是服务器地址。
+            InetSocketAddress server = new InetSocketAddress(mServerAddress, Integer.parseInt(mServerPort));
+
+            // 我们试图创建隧道几次。更好的方法
+            // 与ConnectivityManager合作,比如在只有当吗
+            // 网络、。在这里,我们只使用一个计数器
+            // 简单的事情。
+            for (int attempt = 0; attempt < 10; ++attempt) {
+                mHandler.sendEmptyMessage(R.string.connecting);
+                // 如果我们连接的话，重置计数器。
+                if (run(server)) {
+                    attempt = 0;
+                }
+                //睡3s，让我们得到检查
+                Thread.sleep(3000);
+            }
+            Log.i(TAG, "Giving up");
+        } catch (Exception e) {
+            mHandler.sendEmptyMessage(R.string.error);
+            Log.e(TAG, "Got " + e.toString());
+        } finally {
+            try {
+                mInterface.close();
+            } catch (Exception e) {
+                // ignore
+            }
+            mInterface = null;
+            mParameters = null;
+            mHandler.sendEmptyMessage(R.string.disconnected);
+            Log.i(TAG, "Exiting");
+        }
+    }
+
+    private boolean run(InetSocketAddress server) throws Exception {
+        DatagramChannel tunnel = null;
+        boolean connected = false;
+        try {
+            // Create a DatagramChannel as the VPN tunnel.
+            tunnel = DatagramChannel.open();
+
+            // Protect the tunnel before connecting to avoid loopback.
+            if (!protect(tunnel.socket())) {
+                mHandler.sendEmptyMessage(R.string.error);
+                throw new IllegalStateException("Cannot protect the tunnel");
+            }
+
+            // Connect to the server.
+            tunnel.connect(server);
+
+            // For simplicity, we use the same thread for both reading and
+            // writing. Here we put the tunnel into non-blocking mode.
+            tunnel.configureBlocking(false);
+
+            // Authenticate and configure the virtual network interface.
+            handshake(tunnel);
+
+            // Now we are connected. Set the flag and show the message.
+            connected = true;
+            mHandler.sendEmptyMessage(R.string.connected);
+
+            // Packets to be sent are queued in this input stream.
+            FileInputStream in = new FileInputStream(mInterface.getFileDescriptor());
+
+            // Packets received need to be written to this output stream.
+            FileOutputStream out = new FileOutputStream(mInterface.getFileDescriptor());
+
+            // Allocate the buffer for a single packet.
+            ByteBuffer packet = ByteBuffer.allocate(32767);
+
+            // We use a timer to determine the status of the tunnel. It
+            // works on both sides. A positive value means sending, and
+            // any other means receiving. We start with receiving.
+            int timer = 0;
+
+            // We keep forwarding packets till something goes wrong.
+            while (true) {
+                // Assume that we did not make any progress in this iteration.
+                boolean idle = true;
+
+                // Read the outgoing packet from the input stream.
+                int length = in.read(packet.array());
+                if (length > 0) {
+                    // Write the outgoing packet to the tunnel.
+                    packet.limit(length);
+                    tunnel.write(packet);
+                    packet.clear();
+
+                    // There might be more outgoing packets.
+                    idle = false;
+
+                    // If we were receiving, switch to sending.
+                    if (timer < 1) {
+                        timer = 1;
+                    }
+                }
+
+                // Read the incoming packet from the tunnel.
+                length = tunnel.read(packet);
+                if (length > 0) {
+                    // Ignore control messages, which start with zero.
+                    if (packet.get(0) != 0) {
+                        // Write the incoming packet to the output stream.
+                        out.write(packet.array(), 0, length);
+                    }
+                    packet.clear();
+
+                    // There might be more incoming packets.
+                    idle = false;
+
+                    // If we were sending, switch to receiving.
+                    if (timer > 0) {
+                        timer = 0;
+                    }
+                }
+
+                // If we are idle or waiting for the network, sleep for a
+                // fraction of time to avoid busy looping.
+                if (idle) {
+                    Thread.sleep(100);
+
+                    // Increase the timer. This is inaccurate but good enough,
+                    // since everything is operated in non-blocking mode.
+                    timer += (timer > 0) ? 100 : -100;
+
+                    // We are receiving for a long time but not sending.
+                    if (timer < -15000) {
+                        // Send empty control messages.
+                        packet.put((byte) 0).limit(1);
+                        for (int i = 0; i < 3; ++i) {
+                            packet.position(0);
+                            tunnel.write(packet);
+                        }
+                        packet.clear();
+
+                        // Switch to sending.
+                        timer = 1;
+                    }
+
+                    // We are sending for a long time but not receiving.
+                    if (timer > 20000) {
+                        throw new IllegalStateException("Timed out");
+                    }
                 }
             }
-        };
-        registerReceiver(stateBroadcastReceiver, filter);
-    }
-
-    private void onStateChanged(final Intent intent) {
-        //Log.d(TAG, "onStateChanged: " + intent); //$NON-NLS-1$
-
-        final String profileName = intent.getStringExtra(BROADCAST_PROFILE_NAME);
-        final VpnState state = Utils.extractVpnState(intent);
-        final int err = intent.getIntExtra(BROADCAST_ERROR_CODE, VPN_ERROR_NO_ERROR);
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                stateChanged(profileName, state, err);
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
+            Log.e(TAG, "Got " + e.toString());
+        } finally {
+            try {
+                tunnel.close();
+            } catch (Exception e) {
+                // ignore
             }
-        });
+        }
+        return connected;
     }
 
-    private void stateChanged(final String profileName, final VpnState state, final int errCode) {
-        processing change
+    private void handshake(DatagramChannel tunnel) throws Exception {
+        // To build a secured tunnel, we should perform mutual authentication
+        // and exchange session keys for encryption. To keep things simple in
+        // this demo, we just send the shared secret in plaintext and wait
+        // for the server to send the parameters.
+
+        // Allocate the buffer for handshaking.
+        ByteBuffer packet = ByteBuffer.allocate(1024);
+
+        // Control messages always start with zero.
+        packet.put((byte) 0).put(mSharedSecret).flip();
+
+        // Send the secret several times in case of packet loss.
+        for (int i = 0; i < 3; ++i) {
+            packet.position(0);
+            tunnel.write(packet);
+        }
+        packet.clear();
+
+        // Wait for the parameters within a limited time.
+        for (int i = 0; i < 50; ++i) {
+            Thread.sleep(100);
+
+            // Normally we should not receive random packets.
+            int length = tunnel.read(packet);
+            if (length > 0 && packet.get(0) == 0) {
+                configure(new String(packet.array(), 1, length - 1).trim());
+                return;
+            }
+        }
+        throw new IllegalStateException("Timed out");
+    }
+
+    private void configure(String parameters) throws Exception {
+        // If the old interface has exactly the same parameters, use it!
+        if (mInterface != null && parameters.equals(mParameters)) {
+            Log.i(TAG, "Using the previous interface");
+            return;
+        }
+
+        // Configure a builder while parsing the parameters.
+        Builder builder = new Builder();
+        for (String parameter : parameters.split(" ")) {
+            String[] fields = parameter.split(",");
+            try {
+                switch (fields[0].charAt(0)) {
+                    case 'm':
+                        builder.setMtu(Short.parseShort(fields[1]));
+                        break;
+                    case 'a':
+                        builder.addAddress(fields[1], Integer.parseInt(fields[2]));
+                        break;
+                    case 'r':
+                        builder.addRoute(fields[1], Integer.parseInt(fields[2]));
+                        break;
+                    case 'd':
+                        builder.addDnsServer(fields[1]);
+                        break;
+                    case 's':
+                        builder.addSearchDomain(fields[1]);
+                        break;
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Bad parameter: " + parameter);
+            }
+        }
+
+        // Close the old interface since the parameters have been changed.
+        try {
+            mInterface.close();
+        } catch (Exception e) {
+            // ignore
+        }
+
+        // Create a new interface using the builder and save the parameters.
+        mInterface = builder
+                .setSession(mServerAddress)
+                .setConfigureIntent(mConfigureIntent)
+                .establish();
+        mParameters = parameters;
+        Log.i(TAG, "New interface: " + parameters);
     }
 
 

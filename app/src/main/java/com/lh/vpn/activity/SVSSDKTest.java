@@ -1,4 +1,4 @@
-package com.lh.vpn;
+package com.lh.vpn.activity;
 
 import android.content.Context;
 import android.os.Handler;
