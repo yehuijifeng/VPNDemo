@@ -1,0 +1,1066 @@
+Index: .idea/runConfigurations.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/runConfigurations.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/runConfigurations.xml	(revision )
+@@ -1,0 +1,0 @@
+Index: app/src/main/java/com/lh/vpn/MainActivity.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/MainActivity.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/activity/MainActivity.java	(revision )
+@@ -1,4 +1,4 @@
+-package com.lh.vpn;
++package com.lh.vpn.activity;
+ 
+ import android.app.Dialog;
+ import android.content.DialogInterface;
+@@ -12,6 +12,8 @@
+ import android.widget.Button;
+ import android.widget.EditText;
+ import android.widget.Toast;
++
++import com.lh.vpn.R;
+ 
+ import topsec.sslvpn.svsdklib.SVSDKLib;
+ 
+Index: .idea/gradle.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/gradle.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/gradle.xml	(revision )
+@@ -5,7 +5,7 @@
+       <GradleProjectSettings>
+         <option name="distributionType" value="LOCAL" />
+         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+-        <option name="gradleHome" value="F:\AndroidStudio2.1.0\gradle\gradle-2.10" />
++        <option name="gradleHome" value="$APPLICATION_HOME_DIR$/gradle/gradle-2.4" />
+         <option name="modules">
+           <set>
+             <option value="$PROJECT_DIR$" />
+\ No newline at end of file
+Index: .idea/encodings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/encodings.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/encodings.xml	(revision )
+@@ -1,0 +1,0 @@
+Index: app/src/main/java/com/lh/vpn/activity/ToyVpnClientActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/lh/vpn/activity/ToyVpnClientActivity.java	(revision )
++++ app/src/main/java/com/lh/vpn/activity/ToyVpnClientActivity.java	(revision )
+@@ -0,0 +1,65 @@
++/*
++ * Copyright (C) 2011 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.lh.vpn.activity;
++
++import android.app.Activity;
++import android.content.Intent;
++import android.net.VpnService;
++import android.os.Bundle;
++import android.view.View;
++import android.widget.TextView;
++
++import com.lh.vpn.R;
++import com.lh.vpn.service.VPNService;
++
++public class ToyVpnClientActivity extends Activity implements View.OnClickListener {
++    private TextView mServerAddress;
++    private TextView mServerPort;
++    private TextView mSharedSecret;
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setContentView(R.layout.form);
++        mServerAddress = (TextView) findViewById(R.id.address);
++        mServerPort = (TextView) findViewById(R.id.port);
++        mSharedSecret = (TextView) findViewById(R.id.secret);
++        findViewById(R.id.connect).setOnClickListener(this);
++    }
++
++    @Override
++    public void onClick(View v) {
++        Intent intent = VpnService.prepare(this);
++        if (intent != null) {
++            startActivityForResult(intent, 0);
++        } else {
++            onActivityResult(0, RESULT_OK, null);
++        }
++    }
++
++    @Override
++    protected void onActivityResult(int request, int result, Intent data) {
++        if (result == RESULT_OK) {
++            String prefix = getPackageName();
++            Intent intent = new Intent(this, VPNService.class)
++                    .putExtra(prefix + ".ADDRESS", mServerAddress.getText().toString())
++                    .putExtra(prefix + ".PORT", mServerPort.getText().toString())
++                    .putExtra(prefix + ".SECRET", mSharedSecret.getText().toString());
++            startService(intent);
++        }
++    }
++}
+Index: app/src/main/res/layout/form.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/form.xml	(revision )
++++ app/src/main/res/layout/form.xml	(revision )
+@@ -0,0 +1,46 @@
++<?xml version="1.0" encoding="utf-8"?>
++<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:orientation="vertical"
++        android:padding="3mm">
++
++        <TextView
++            style="@style/item"
++            android:text="@string/address" />
++
++        <EditText
++            android:id="@+id/address"
++            style="@style/item"
++            android:text="115.29.224.175"/>
++
++        <TextView
++            style="@style/item"
++            android:text="@string/port" />
++
++        <EditText
++            android:id="@+id/port"
++            style="@style/item"
++            android:text="9999"/>
++
++        <TextView
++            style="@style/item"
++            android:text="@string/secret" />
++
++        <EditText
++            android:id="@+id/secret"
++            style="@style/item"
++            android:text="123123123a"
++            android:password="true" />
++
++        <Button
++            android:id="@+id/connect"
++            style="@style/item"
++            android:text="@string/connect" />
++
++    </LinearLayout>
++</ScrollView>
+Index: app/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/build.gradle	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/build.gradle	(revision )
+@@ -1,8 +1,8 @@
+ apply plugin: 'com.android.application'
+ 
+ android {
+-    compileSdkVersion 23
+-    buildToolsVersion "24.0.2"
++    compileSdkVersion 22
++    buildToolsVersion "23.0.2"
+ 
+     defaultConfig {
+         applicationId "com.lh.vpn"
+@@ -22,6 +22,6 @@
+ dependencies {
+     compile fileTree(include: ['*.jar'], dir: 'libs')
+     testCompile 'junit:junit:4.12'
+-    compile 'com.android.support:appcompat-v7:23.4.0'
++    compile 'com.android.support:appcompat-v7:22+'
+     compile files('src/main/jniLibs/svsdklib.jar')
+ }
+Index: app/src/main/java/com/lh/vpn/service/OWLPptpProfileEditor.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/service/OWLPptpProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/service/OWLPptpProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
+@@ -1,29 +0,0 @@
+-package com.lh.vpn.service;
+-
+-import android.content.Context;
+-
+-/**
+- * Created by LuHao on 2016/10/11.
+- */
+-public class OWLPptpProfileEditor extends OWLVpnProfileEditor {
+-    public OWLPptpProfileEditor(Context context) {
+-        super(context);
+-    }
+-
+-    @Override
+-    protected VpnProfile createProfile() {
+-        return new PptpProfile(mContext);
+-    }
+-
+-
+-    @Override
+-    protected void doPopulateProfile() {
+-        PptpProfile profile = getProfile();
+-        profile.setName("OWLPPTP");
+-        profile.setServerName("0.0.0.0");
+-        profile.setDomainSuffices("8.8.8.8");
+-        profile.setUsername("whyonly");
+-        profile.setPassword(".....");
+-        profile.setEncryptionEnabled(true);
+-    }
+-}
+Index: build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- build.gradle	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ build.gradle	(revision )
+@@ -5,7 +5,7 @@
+         jcenter()
+     }
+     dependencies {
+-        classpath 'com.android.tools.build:gradle:2.1.0'
++        classpath 'com.android.tools.build:gradle:1.3.0'
+ 
+         // NOTE: Do not place your application dependencies here; they belong
+         // in the individual module build.gradle files
+Index: .idea/modules.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/modules.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/modules.xml	(revision )
+@@ -2,7 +2,7 @@
+ <project version="4">
+   <component name="ProjectModuleManager">
+     <modules>
+-      <module fileurl="file://$PROJECT_DIR$/VpnDemo.iml" filepath="$PROJECT_DIR$/VpnDemo.iml" />
++      <module fileurl="file://$PROJECT_DIR$/VPNDemo.iml" filepath="$PROJECT_DIR$/VPNDemo.iml" />
+       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+     </modules>
+   </component>
+\ No newline at end of file
+Index: .idea/.name
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/.name	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/.name	(revision )
+@@ -1,1 +1,1 @@
+-VpnDemo
+\ No newline at end of file
++VPNDemo
+\ No newline at end of file
+Index: app/src/main/java/com/lh/vpn/VpnServiceActivity.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/VpnServiceActivity.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/VpnServiceActivity.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
+@@ -1,99 +0,0 @@
+-package com.lh.vpn;
+-
+-import android.app.Dialog;
+-import android.content.DialogInterface;
+-import android.content.Intent;
+-import android.net.VpnService;
+-import android.os.Bundle;
+-import android.support.v7.app.AlertDialog;
+-import android.support.v7.app.AppCompatActivity;
+-import android.view.View;
+-import android.widget.Button;
+-import android.widget.EditText;
+-
+-import com.lh.vpn.service.VPNService;
+-
+-/**
+- * Created by LuHao on 2016/10/11.
+- */
+-public class VpnServiceActivity extends AppCompatActivity implements View.OnClickListener {
+-
+-    private Dialog mShowingDialog;
+-    private Button start_btn, stop_btn, status_btn;
+-    private EditText ip_text, port_text, name_text, pwd_text;
+-    private final int goService = 1001;
+-
+-    @Override
+-    protected void onCreate(Bundle savedInstanceState) {
+-        super.onCreate(savedInstanceState);
+-        setContentView(R.layout.activity_main);
+-        start_btn = (Button) findViewById(R.id.start_btn);
+-        stop_btn = (Button) findViewById(R.id.stop_btn);
+-        status_btn = (Button) findViewById(R.id.status_btn);
+-        ip_text = (EditText) findViewById(R.id.ip_text);
+-        port_text = (EditText) findViewById(R.id.port_text);
+-        name_text = (EditText) findViewById(R.id.name_text);
+-        pwd_text = (EditText) findViewById(R.id.pwd_text);
+-        start_btn.setOnClickListener(this);
+-        stop_btn.setOnClickListener(this);
+-        status_btn.setOnClickListener(this);
+-        initData();
+-    }
+-
+-    private void initData() {
+-        /**VpnService.prepare函数的目的，
+-         * 主要是用来检查当前系统中是不是已经存在一个VPN连接了
+-         * 如果有了的话，是不是就是本程序创建的。
+-         * 这个intent就是用来触发确认对话框的，
+-         * 程序会接着调用startActivityForResult将对话框弹出来等用户确认。
+-         **/
+-        Intent intent = VpnService.prepare(this);
+-        if (intent != null) {
+-            startActivityForResult(intent, goService);
+-        } else {
+-            onActivityResult(0, RESULT_OK, null);
+-        }
+-
+-    }
+-
+-
+-    @Override
+-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+-        super.onActivityResult(requestCode, resultCode, data);
+-        if (requestCode == goService && resultCode == RESULT_OK) {
+-            /**
+-             * 如果用户确认了，则会关闭前面已经建立的VPN连接，并重置虚拟端口。
+-             * 该对话框返回的时候，会调用onActivityResult函数，并告之用户的选择。
+-             * */
+-            Intent intent = new Intent(this, VPNService.class);
+-            startService(intent);
+-        }
+-    }
+-
+-    @Override
+-    public void onClick(View v) {
+-        switch (v.getId()) {
+-            case R.id.start_btn://开始连接vpn
+-                break;
+-            case R.id.stop_btn://停止连接vpn
+-                break;
+-            case R.id.status_btn://连接vpn状态
+-                break;
+-        }
+-    }
+-
+-    private void showErrorDialog(String sErrInfo) {
+-        mShowingDialog = new AlertDialog
+-                .Builder(this)
+-                .setTitle("通知")
+-                .setIcon(android.R.drawable.ic_dialog_alert)
+-                .setMessage(sErrInfo)
+-                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+-                    public void onClick(DialogInterface arg0, int arg1) {
+-                    }
+-                })
+-                .create();
+-        mShowingDialog.show();
+-    }
+-
+-}
+Index: app/src/main/res/layout/activity_main.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/activity_main.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/res/layout/activity_main.xml	(revision )
+@@ -4,7 +4,7 @@
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:orientation="vertical"
+-    tools:context="com.lh.vpn.MainActivity">
++    tools:context=".activity.MainActivity">
+ 
+     <TextView
+         android:layout_width="fill_parent"
+Index: .idea/vcs.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/vcs.xml	(revision )
++++ .idea/vcs.xml	(revision )
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+Index: app/src/main/java/com/lh/vpn/service/VPNService.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/lh/vpn/service/VPNService.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/service/VPNService.java	(revision )
+@@ -1,132 +1,339 @@
+ package com.lh.vpn.service;
+ 
+-import android.content.BroadcastReceiver;
+-import android.content.Context;
++import android.app.PendingIntent;
+ import android.content.Intent;
+-import android.content.IntentFilter;
+ import android.net.VpnService;
++import android.os.Handler;
++import android.os.Message;
+ import android.os.ParcelFileDescriptor;
+ import android.util.Log;
++import android.widget.Toast;
+ 
++import com.lh.vpn.R;
++
+ import java.io.FileInputStream;
+ import java.io.FileOutputStream;
+-import java.io.IOException;
++import java.net.InetSocketAddress;
+ import java.nio.ByteBuffer;
++import java.nio.channels.DatagramChannel;
+ 
+ /**
+  * Created by LuHao on 2016/10/11.
+  * VpnService类封装了建立VPN连接所必须的所有函数
++ * <p/>
++ * 在Apache许可下的,2.0版本(“许可证”);
++ * 你可能不使用这个文件除了遵守许可证。
++ * 你可以获得许可证的副本
++ * <p/>
++ * http://www.apache.org/licenses/license - 2.0
++ * <p/>
++ * 除非适用法律要求或书面同意,软件
++ * 在许可证下发布的分布在一个“目前的”基础上,
++ * 没有任何形式的保证或条件,明示或默示。
++ * 查看许可证的管理权限和特定的语言
++ * 限制下的许可。
+  */
+-public class VPNService extends VpnService {
++public class VPNService extends VpnService implements Handler.Callback, Runnable {
+ 
++    private static final String TAG = "VPNService";
+ 
+-    public void initService(Context context) {
+-        /**
+-         * 建立链接的第一步是要用合适的参数，
+-         * 创建并初始化好tun0虚拟网络端口，
+-         * 这可以通过在VpnService类中的一个内部类Builder来做到：
+-         * */
+-        /**
+-         *在正式建立（establish）虚拟网络接口之前，需要设置好几个参数，分别是：
++    private String mServerAddress;
++    private String mServerPort;
++    private byte[] mSharedSecret;
++    private PendingIntent mConfigureIntent;
+ 
+-         1）MTU（Maximun Transmission Unit），即表示虚拟网络端口的最大传输单元，
+-         如果发送的包长度超过这个数字，则会被分包；
++    private Handler mHandler;
++    private Thread mThread;
+ 
+-         2）Address，即这个虚拟网络端口的IP地址；
++    private ParcelFileDescriptor mInterface;
++    private String mParameters;
+ 
+-         3）Route，只有匹配上的IP包，才会被路由到虚拟端口上去。
+-         如果是0.0.0.0/0的话，则会将所有的IP包都路由到虚拟端口上去；
++    @Override
++    public int onStartCommand(Intent intent, int flags, int startId) {
++        //这个程序只是用来显示信息的
++        if (mHandler == null) {
++            mHandler = new Handler(this);
++        }
+ 
+-         4）DNS Server，就是该端口的DNS服务器地址；
++        // 在连接新的线程之前，先停止旧的线程工作
++        if (mThread != null) {
++            mThread.interrupt();
++        }
+ 
+-         5）Search Domain，就是添加DNS域名的自动补齐。
+-         DNS服务器必须通过全域名进行搜索，但每次查找都输入全域名太麻烦了，可以通过配置域名的自动补齐规则予以简化；
++        //提取意图中的信息
++        String prefix = getPackageName();
++        mServerAddress = intent.getStringExtra(prefix + ".ADDRESS");
++        mServerPort = intent.getStringExtra(prefix + ".PORT");
++        mSharedSecret = intent.getStringExtra(prefix + ".SECRET").getBytes();
+ 
+-         6）Session，就是你要建立的VPN连接的名字，它将会在系统管理的与VPN连接相关的通知栏和对话框中显示出来；
++        // 通过创建一个新线程启动一个新的会话。
++        mThread = new Thread(this, "VpnThread");
++        mThread.start();
++        return START_STICKY;
++    }
+ 
+-         7）Configure Intent，这个intent指向一个配置页面，用来配置VPN链接。
+-         它不是必须的，如果没设置的话，则系统弹出的VPN相关对话框中不会出现配置按钮。
++    @Override
++    public void onDestroy() {
++        if (mThread != null) {
++            mThread.interrupt();
++        }
++    }
+ 
+-         **/
+-        Builder builder = new Builder();
+-        builder.setMtu(...);
+-        builder.addAddress(...);
+-        builder.addRoute(...);
+-        builder.addDnsServer(...);
+-        builder.addSearchDomain(...);
+-        builder.setSession(...);
+-        builder.setConfigureIntent(...);
+-        //最后调用Builder.establish函数，如果一切正常的话，tun0虚拟网络接口就建立完成了。
+-        // 并且，同时还会通过iptables命令，修改NAT表，将所有数据转发到tun0接口上。
+-        builder.establish();//函数
++    @Override
++    public boolean handleMessage(Message message) {
++        if (message != null) {
++            Toast.makeText(this, message.what, Toast.LENGTH_SHORT).show();
++        }
++        return true;
++    }
+ 
+-        ParcelFileDescriptor interfaces = builder.establish();
++    @Override
++    public synchronized void run() {
++        try {
++            Log.i(TAG, "Starting");
+ 
+-        /**
+-         * 这之后，就可以通过读写VpnService.Builder返回的ParcelFileDescriptor实例
+-         * 来获得设备上所有向外发送的IP数据包和返回处理过后的IP数据包到TCP/IP协议栈：
+-         * */
++            //如果有任何需要使用网络,让它现在。
++            //这大大减少了复杂性的无缝交接
++            //试图重现隧道在不关闭一切。
++            //在这个演示中,所有我们需要知道的是服务器地址。
++            InetSocketAddress server = new InetSocketAddress(mServerAddress, Integer.parseInt(mServerPort));
+ 
++            // 我们试图创建隧道几次。更好的方法
++            // 与ConnectivityManager合作,比如在只有当吗
++            // 网络、。在这里,我们只使用一个计数器
++            // 简单的事情。
++            for (int attempt = 0; attempt < 10; ++attempt) {
++                mHandler.sendEmptyMessage(R.string.connecting);
++                // 如果我们连接的话，重置计数器。
++                if (run(server)) {
++                    attempt = 0;
++                }
++                //睡3s，让我们得到检查
++                Thread.sleep(3000);
++            }
++            Log.i(TAG, "Giving up");
++        } catch (Exception e) {
++            mHandler.sendEmptyMessage(R.string.error);
++            Log.e(TAG, "Got " + e.toString());
++        } finally {
++            try {
++                mInterface.close();
++            } catch (Exception e) {
++                // ignore
++            }
++            mInterface = null;
++            mParameters = null;
++            mHandler.sendEmptyMessage(R.string.disconnected);
++            Log.i(TAG, "Exiting");
++        }
++    }
++
++    private boolean run(InetSocketAddress server) throws Exception {
++        DatagramChannel tunnel = null;
++        boolean connected = false;
++        try {
++            // Create a DatagramChannel as the VPN tunnel.
++            tunnel = DatagramChannel.open();
++
++            // Protect the tunnel before connecting to avoid loopback.
++            if (!protect(tunnel.socket())) {
++                mHandler.sendEmptyMessage(R.string.error);
++                throw new IllegalStateException("Cannot protect the tunnel");
++            }
++
++            // Connect to the server.
++            tunnel.connect(server);
++
++            // For simplicity, we use the same thread for both reading and
++            // writing. Here we put the tunnel into non-blocking mode.
++            tunnel.configureBlocking(false);
++
++            // Authenticate and configure the virtual network interface.
++            handshake(tunnel);
++
++            // Now we are connected. Set the flag and show the message.
++            connected = true;
++            mHandler.sendEmptyMessage(R.string.connected);
++
+-        // Packets to be sent are queued in this input stream.
++            // Packets to be sent are queued in this input stream.
+-        FileInputStream in = new FileInputStream(interfaces.getFileDescriptor());
++            FileInputStream in = new FileInputStream(mInterface.getFileDescriptor());
++
+-        // Packets received need to be written to this output stream.
++            // Packets received need to be written to this output stream.
+-        FileOutputStream out = new FileOutputStream(interfaces.getFileDescriptor());
++            FileOutputStream out = new FileOutputStream(mInterface.getFileDescriptor());
++
+-        // Allocate the buffer for a single packet.
+-        ByteBuffer packet = ByteBuffer.allocate(32767);
++            // Allocate the buffer for a single packet.
++            ByteBuffer packet = ByteBuffer.allocate(32767);
+-        try {
+-            // Read packets sending to this interface
++
++            // We use a timer to determine the status of the tunnel. It
++            // works on both sides. A positive value means sending, and
++            // any other means receiving. We start with receiving.
++            int timer = 0;
++
++            // We keep forwarding packets till something goes wrong.
++            while (true) {
++                // Assume that we did not make any progress in this iteration.
++                boolean idle = true;
++
++                // Read the outgoing packet from the input stream.
+-            int length = in.read(packet.array());
++                int length = in.read(packet.array());
+-            // Write response packets back
++                if (length > 0) {
++                    // Write the outgoing packet to the tunnel.
++                    packet.limit(length);
++                    tunnel.write(packet);
++                    packet.clear();
++
++                    // There might be more outgoing packets.
++                    idle = false;
++
++                    // If we were receiving, switch to sending.
++                    if (timer < 1) {
++                        timer = 1;
++                    }
++                }
++
++                // Read the incoming packet from the tunnel.
++                length = tunnel.read(packet);
++                if (length > 0) {
++                    // Ignore control messages, which start with zero.
++                    if (packet.get(0) != 0) {
++                        // Write the incoming packet to the output stream.
+-            out.write(packet.array(), 0, length);
++                        out.write(packet.array(), 0, length);
+-        } catch (IOException e) {
+-            e.printStackTrace();
+-        }
++                    }
++                    packet.clear();
+ 
+-        OWLVpnProfileEditor pptp = new OWLPptpProfileEditor(this);
+-        pptp.onSave();
+-        OWLVpnProfileEditor lwtpIpsec = new OWLL2tpIpsecPskProfileEditor(this);
+-        lwtpIpsec.onSave();
++                    // There might be more incoming packets.
++                    idle = false;
+ 
+-        VpnActor actor = new VpnActor(getApplicationContext());
+-        actor.connect(profile);
++                    // If we were sending, switch to receiving.
++                    if (timer > 0) {
++                        timer = 0;
++                    }
++                }
+ 
++                // If we are idle or waiting for the network, sleep for a
++                // fraction of time to avoid busy looping.
++                if (idle) {
++                    Thread.sleep(100);
++
++                    // Increase the timer. This is inaccurate but good enough,
++                    // since everything is operated in non-blocking mode.
++                    timer += (timer > 0) ? 100 : -100;
++
++                    // We are receiving for a long time but not sending.
++                    if (timer < -15000) {
++                        // Send empty control messages.
++                        packet.put((byte) 0).limit(1);
++                        for (int i = 0; i < 3; ++i) {
++                            packet.position(0);
++                            tunnel.write(packet);
+-    }
++                        }
++                        packet.clear();
+ 
+-    private void registerReceivers() {
+-        IntentFilter filter = new IntentFilter();
+-        filter.addAction(ACTION_VPN_CONNECTIVITY);
+-        stateBroadcastReceiver = new BroadcastReceiver() {
+-            @Override
+-            public void onReceive(final Context context, final Intent intent) {
+-                String action = intent.getAction();
++                        // Switch to sending.
++                        timer = 1;
++                    }
+ 
+-                if (ACTION_VPN_CONNECTIVITY.equals(action)) {
+-                    onStateChanged(intent);
+-                } else {
+-                    Log.d(TAG, "VPNSettings receiver ignores intent:" + intent); //$NON-NLS-1$
++                    // We are sending for a long time but not receiving.
++                    if (timer > 20000) {
++                        throw new IllegalStateException("Timed out");
+-                }
+-            }
++                    }
++                }
+-        };
+-        registerReceiver(stateBroadcastReceiver, filter);
+-    }
++            }
++        } catch (InterruptedException e) {
++            throw e;
++        } catch (Exception e) {
++            Log.e(TAG, "Got " + e.toString());
++        } finally {
++            try {
++                tunnel.close();
++            } catch (Exception e) {
++                // ignore
++            }
++        }
++        return connected;
++    }
+ 
+-    private void onStateChanged(final Intent intent) {
+-        //Log.d(TAG, "onStateChanged: " + intent); //$NON-NLS-1$
++    private void handshake(DatagramChannel tunnel) throws Exception {
++        // To build a secured tunnel, we should perform mutual authentication
++        // and exchange session keys for encryption. To keep things simple in
++        // this demo, we just send the shared secret in plaintext and wait
++        // for the server to send the parameters.
+ 
+-        final String profileName = intent.getStringExtra(BROADCAST_PROFILE_NAME);
+-        final VpnState state = Utils.extractVpnState(intent);
+-        final int err = intent.getIntExtra(BROADCAST_ERROR_CODE, VPN_ERROR_NO_ERROR);
++        // Allocate the buffer for handshaking.
++        ByteBuffer packet = ByteBuffer.allocate(1024);
+ 
+-        runOnUiThread(new Runnable() {
+-            @Override
+-            public void run() {
+-                stateChanged(profileName, state, err);
++        // Control messages always start with zero.
++        packet.put((byte) 0).put(mSharedSecret).flip();
++
++        // Send the secret several times in case of packet loss.
++        for (int i = 0; i < 3; ++i) {
++            packet.position(0);
++            tunnel.write(packet);
+-            }
++        }
+-        });
++        packet.clear();
++
++        // Wait for the parameters within a limited time.
++        for (int i = 0; i < 50; ++i) {
++            Thread.sleep(100);
++
++            // Normally we should not receive random packets.
++            int length = tunnel.read(packet);
++            if (length > 0 && packet.get(0) == 0) {
++                configure(new String(packet.array(), 1, length - 1).trim());
++                return;
+-    }
++            }
++        }
++        throw new IllegalStateException("Timed out");
++    }
+ 
+-    private void stateChanged(final String profileName, final VpnState state, final int errCode) {
+-        processing change
++    private void configure(String parameters) throws Exception {
++        // If the old interface has exactly the same parameters, use it!
++        if (mInterface != null && parameters.equals(mParameters)) {
++            Log.i(TAG, "Using the previous interface");
++            return;
++        }
++
++        // Configure a builder while parsing the parameters.
++        Builder builder = new Builder();
++        for (String parameter : parameters.split(" ")) {
++            String[] fields = parameter.split(",");
++            try {
++                switch (fields[0].charAt(0)) {
++                    case 'm':
++                        builder.setMtu(Short.parseShort(fields[1]));
++                        break;
++                    case 'a':
++                        builder.addAddress(fields[1], Integer.parseInt(fields[2]));
++                        break;
++                    case 'r':
++                        builder.addRoute(fields[1], Integer.parseInt(fields[2]));
++                        break;
++                    case 'd':
++                        builder.addDnsServer(fields[1]);
++                        break;
++                    case 's':
++                        builder.addSearchDomain(fields[1]);
++                        break;
++                }
++            } catch (Exception e) {
++                throw new IllegalArgumentException("Bad parameter: " + parameter);
++            }
++        }
++
++        // Close the old interface since the parameters have been changed.
++        try {
++            mInterface.close();
++        } catch (Exception e) {
++            // ignore
++        }
++
++        // Create a new interface using the builder and save the parameters.
++        mInterface = builder
++                .setSession(mServerAddress)
++                .setConfigureIntent(mConfigureIntent)
++                .establish();
++        mParameters = parameters;
++        Log.i(TAG, "New interface: " + parameters);
+     }
+ 
+ 
+Index: app/src/main/java/com/lh/vpn/service/OWLVpnProfileEditor.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/service/OWLVpnProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/service/OWLVpnProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
+@@ -1,53 +0,0 @@
+-package com.lh.vpn.service;
+-
+-import android.content.Context;
+-
+-import java.security.KeyStore;
+-
+-/**
+- * Created by LuHao on 2016/10/11.
+- * 保存VPN Profile的抽象类，供PPTP，L2tp,L2tpIpsecPsk等扩展
+- */
+-public abstract class OWLVpnProfileEditor {
+-    private VpnProfile profile;
+-    private VpnProfileRepository repository;
+-    private KeyStore keyStore;
+-    private Runnable resumeAction;
+-
+-    protected Context mContext;
+-
+-    public OWLVpnProfileEditor(final Context context) {
+-        mContext = context;
+-        repository = VpnProfileRepository.getInstance(context);
+-        keyStore = new KeyStore(context);
+-    }
+-
+-    public void onSave() {
+-        try {
+-            profile = createProfile();
+-            populateProfile();
+-            saveProfile();
+-        } catch (InvalidProfileException e) {
+-            throw e;
+-        }
+-    }
+-
+-    private void populateProfile() {
+-        profile.setState(VpnState.IDLE);
+-        doPopulateProfile();
+-        repository.checkProfile(profile);
+-    }
+-
+-    private void saveProfile() {
+-        repository.addVpnProfile(profile);
+-    }
+-
+-    @SuppressWarnings("unchecked")
+-    protected <T extends VpnProfile> T getProfile() {
+-        return (T) profile;
+-    }
+-
+-    protected abstract VpnProfile createProfile();
+-
+-    protected abstract void doPopulateProfile();
+-}
+Index: app/src/main/res/values/styles.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/styles.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/res/values/styles.xml	(revision )
+@@ -8,4 +8,10 @@
+         <item name="colorAccent">@color/colorAccent</item>
+     </style>
+ 
++    <style name="item">
++        <item name="android:layout_width">match_parent</item>
++        <item name="android:layout_height">wrap_content</item>
++        <item name="android:textAppearance">?android:attr/textAppearanceMedium</item>
++        <item name="android:singleLine">true</item>
++    </style>
+ </resources>
+Index: app/src/main/java/com/lh/vpn/SVSSDKTest.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/SVSSDKTest.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/activity/SVSSDKTest.java	(revision )
+@@ -1,4 +1,4 @@
+-package com.lh.vpn;
++package com.lh.vpn.activity;
+ 
+ import android.content.Context;
+ import android.os.Handler;
+Index: app/src/main/java/com/lh/vpn/service/OWLL2tpIpsecPskProfileEditor.java
+===================================================================
+--- app/src/main/java/com/lh/vpn/service/OWLL2tpIpsecPskProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/java/com/lh/vpn/service/OWLL2tpIpsecPskProfileEditor.java	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
+@@ -1,37 +0,0 @@
+-package com.lh.vpn.service;
+-
+-import android.content.Context;
+-
+-/**
+- * Created by LuHao on 2016/10/11.
+- */
+-public class OWLL2tpIpsecPskProfileEditor extends OWLVpnProfileEditor {
+-
+-    public OWLL2tpIpsecPskProfileEditor(final Context context) {
+-        super(context);
+-    }
+-
+-    @Override
+-    protected VpnProfile createProfile() {
+-        return new L2tpIpsecPskProfile(mContext);
+-    }
+-
+-
+-    @Override
+-    protected void doPopulateProfile() {
+-        L2tpIpsecPskProfile p = getProfile();
+-
+-        p.setName("OWLL2tpIpsecPsk");
+-        p.setServerName("0.0.0.0");
+-        p.setDomainSuffices("8.8.8.8");
+-        p.setUsername("xxxxxxx");
+-        p.setPassword("xxxx");
+-
+-        p.setPresharedKey("xxxxx");
+-        boolean secretEnabled = false;
+-        p.setSecretEnabled(secretEnabled);
+-        p.setSecretString(secretEnabled ? "xxxx" : "");
+-    }
+-
+-
+-}
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/misc.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/misc.xml	(revision )
+@@ -1,0 +1,0 @@
+Index: app/src/main/AndroidManifest.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/AndroidManifest.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/AndroidManifest.xml	(revision )
+@@ -7,7 +7,6 @@
+     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />
+     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+-    <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
+ 
+     <application
+         android:allowBackup="true"
+@@ -15,15 +14,25 @@
+         android:label="@string/app_name"
+         android:supportsRtl="true"
+         android:theme="@style/AppTheme">
+-        <activity android:name=".MainActivity">
++        <activity android:name=".activity.ToyVpnClientActivity">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
+         </activity>
+         <activity
+-            android:name=".VpnServiceActivity"
++            android:name=".activity.MainActivity"
+             android:launchMode="singleTop" />
++        <service
++            android:name=".service.VPNService"
++            android:enabled="true"
++            android:exported="true"
++            android:permission="android.permission.BIND_VPN_SERVICE">
++
++            <intent-filter>
++                <action android:name="android.net.VpnService" />
++            </intent-filter>
++        </service>
+     </application>
+ 
+ </manifest>
+\ No newline at end of file
+Index: .idea/compiler.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .idea/compiler.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ .idea/compiler.xml	(revision )
+@@ -1,0 +1,0 @@
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/strings.xml	(revision 6f2585d375ede79545316d1b65147014bf15e16f)
++++ app/src/main/res/values/strings.xml	(revision )
+@@ -1,3 +1,12 @@
+ <resources>
+     <string name="app_name">VpnDemo</string>
++    <string name="address">IPv4 地址:</string>
++    <string name="port">端口号:</string>
++    <string name="secret">密码:</string>
++    <string name="connect">链接!</string>
++
++    <string name="connecting">VPN 连接中……</string>
++    <string name="connected">VPN 已连接</string>
++    <string name="disconnected">VPN 已断开</string>
++    <string name="error">Cannot protect the tunnel</string>
+ </resources>

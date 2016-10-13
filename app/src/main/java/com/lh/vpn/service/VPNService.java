@@ -174,59 +174,57 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
             // 我们使用一个计时器来确定隧道的状态。它双方的工作。正数意味着发送,和任何其他方式接收。我们从收到开始。
             int timer = 0;
 
-            // We keep forwarding packets till something goes wrong.
+            //我们继续转发数据包到出现问题。
             while (true) {
-                // Assume that we did not make any progress in this iteration.
+                //假设我们没有取得任何进展在这个迭代。
                 boolean idle = true;
 
-                // Read the outgoing packet from the input stream.
+                //从输入流中读取即将离任的包。
                 int length = in.read(packet.array());
                 if (length > 0) {
-                    // Write the outgoing packet to the tunnel.
+                    //即将离任的数据包写入隧道。
                     packet.limit(length);
                     tunnel.write(packet);
                     packet.clear();
 
-                    // There might be more outgoing packets.
+                    //可能会有更外向包。
                     idle = false;
 
-                    // If we were receiving, switch to sending.
+                    //如果我们收到,切换到发送。
                     if (timer < 1) {
                         timer = 1;
                     }
                 }
 
-                // Read the incoming packet from the tunnel.
+                //从隧道读取传入的数据包。
                 length = tunnel.read(packet);
                 if (length > 0) {
-                    // Ignore control messages, which start with zero.
+                    //忽略控制消息,从0开始。
                     if (packet.get(0) != 0) {
-                        // Write the incoming packet to the output stream.
+                        //传入的数据包写入输出流。
                         out.write(packet.array(), 0, length);
                     }
                     packet.clear();
 
-                    // There might be more incoming packets.
+                    // 可能有更多的传入的数据包。
                     idle = false;
 
-                    // If we were sending, switch to receiving.
+                    // 如果我们发送、接收开关
                     if (timer > 0) {
                         timer = 0;
                     }
                 }
 
-                // If we are idle or waiting for the network, sleep for a
-                // fraction of time to avoid busy looping.
+                // 如果我们空闲或等待网络,睡了一小部分的时间来避免繁忙的循环
                 if (idle) {
                     Thread.sleep(100);
 
-                    // Increase the timer. This is inaccurate but good enough,
-                    // since everything is operated in non-blocking mode.
+                    // 增加计时器。这是不准确的,但足够好,因为一切都是在非阻塞模式。;
                     timer += (timer > 0) ? 100 : -100;
 
-                    // We are receiving for a long time but not sending.
+                    // 我们收到了很长一段时间但不发送
                     if (timer < -15000) {
-                        // Send empty control messages.
+                        // 发送空的控制消息。
                         packet.put((byte) 0).limit(1);
                         for (int i = 0; i < 3; ++i) {
                             packet.position(0);
@@ -234,11 +232,11 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
                         }
                         packet.clear();
 
-                        // Switch to sending.
+                        // 切换到发送
                         timer = 1;
                     }
 
-                    // We are sending for a long time but not receiving.
+                    // 我们寄了很长一段时间但不接收。
                     if (timer > 20000) {
                         throw new IllegalStateException("Timed out");
                     }
@@ -265,29 +263,26 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
      * @throws Exception
      */
     private void handshake(DatagramChannel tunnel) throws Exception {
-        // To build a secured tunnel, we should perform mutual authentication
-        // and exchange session keys for encryption. To keep things simple in
-        // this demo, we just send the shared secret in plaintext and wait
-        // for the server to send the parameters.
-
-        // Allocate the buffer for handshaking.
+        //建立一个安全的隧道,我们应该进行相互身份验证和交流会话密钥进行加密。
+        // 在这个演示为简单起见,我们只发送明文的共享密钥和等待服务器发送的参数。;
+        // 分配的缓冲区握手。
         ByteBuffer packet = ByteBuffer.allocate(1024);
 
-        // Control messages always start with zero.
+        // 控制消息总是从0开始。
         packet.put((byte) 0).put(mSharedSecret).flip();
 
-        // Send the secret several times in case of packet loss.
+        // 发送数据包的秘密几次,以防损失。
         for (int i = 0; i < 3; ++i) {
             packet.position(0);
             tunnel.write(packet);
         }
         packet.clear();
 
-        // Wait for the parameters within a limited time.
+        // 在有限的时间等参数。
         for (int i = 0; i < 50; ++i) {
             Thread.sleep(100);
 
-            // Normally we should not receive random packets.
+            // 通常我们不应该接受随机数据包。;
             int length = tunnel.read(packet);
             if (length > 0 && packet.get(0) == 0) {
                 configure(new String(packet.array(), 1, length - 1).trim());
@@ -298,13 +293,13 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
     }
 
     private void configure(String parameters) throws Exception {
-        // If the old interface has exactly the same parameters, use it!
+        // 如果旧的接口有相同的参数,使用它!;
         if (mInterface != null && parameters.equals(mParameters)) {
             Log.i(TAG, "Using the previous interface");
             return;
         }
 
-        // Configure a builder while parsing the parameters.
+        // 配置一个构建器在解析参数。;
         Builder builder = new Builder();
         for (String parameter : parameters.split(" ")) {
             String[] fields = parameter.split(",");
@@ -331,14 +326,14 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
             }
         }
 
-        // Close the old interface since the parameters have been changed.
+        // 关闭旧接口参数以来发生了变化。;
         try {
             mInterface.close();
         } catch (Exception e) {
             // ignore
         }
 
-        // Create a new interface using the builder and save the parameters.
+        //创建一个新接口使用builder和保存参数。
         mInterface = builder
                 .setSession(mServerAddress)
                 .setConfigureIntent(mConfigureIntent)
@@ -346,6 +341,5 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
         mParameters = parameters;
         Log.i(TAG, "New interface: " + parameters);
     }
-
 
 }

@@ -21,8 +21,10 @@ import android.content.Intent;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
+import com.lh.jni.JniKit;
 import com.lh.vpn.R;
 import com.lh.vpn.service.VPNService;
 
@@ -30,6 +32,7 @@ public class ToyVpnClientActivity extends Activity implements View.OnClickListen
     private TextView mServerAddress;
     private TextView mServerPort;
     private TextView mSharedSecret;
+    private Button connect;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,7 +41,9 @@ public class ToyVpnClientActivity extends Activity implements View.OnClickListen
         mServerAddress = (TextView) findViewById(R.id.address);
         mServerPort = (TextView) findViewById(R.id.port);
         mSharedSecret = (TextView) findViewById(R.id.secret);
-        findViewById(R.id.connect).setOnClickListener(this);
+        connect = (Button) findViewById(R.id.connect);
+        connect.setOnClickListener(this);
+        connect.setText(JniKit.calculate(5)+"");
     }
 
     @Override

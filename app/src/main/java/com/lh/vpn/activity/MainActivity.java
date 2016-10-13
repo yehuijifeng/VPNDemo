@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         stop_btn.setOnClickListener(this);
         status_btn.setOnClickListener(this);
         svssdkTest = new SVSSDKTest(this, handler);
+
     }
 
     private Handler handler = new Handler() {
