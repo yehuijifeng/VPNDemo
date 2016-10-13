@@ -101,11 +101,11 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
             // 我们试图创建隧道几次。更好的方法
             // 与ConnectivityManager合作,比如在只有当吗
             // 网络、。在这里,我们只使用一个计数器
-            // 简单的事情。
+            // 简单的事情,连接十次
             for (int attempt = 0; attempt < 10; ++attempt) {
                 mHandler.sendEmptyMessage(R.string.connecting);
                 // 如果我们连接的话，重置计数器。
-                if (run(server)) {
+                if (runStartVPN(server)) {
                     attempt = 0;
                 }
                 //睡3s，让我们得到检查
@@ -128,45 +128,50 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
         }
     }
 
-    private boolean run(InetSocketAddress server) throws Exception {
+    /**
+     * 连接vpn的具体方法
+     *
+     * @param server
+     * @return
+     * @throws Exception
+     */
+    private boolean runStartVPN(InetSocketAddress server) throws Exception {
         DatagramChannel tunnel = null;
         boolean connected = false;
         try {
-            // Create a DatagramChannel as the VPN tunnel.
+            // 创建一个DatagramChannel VPN隧道。
             tunnel = DatagramChannel.open();
 
-            // Protect the tunnel before connecting to avoid loopback.
+            //保护隧道连接以避免回环之前。
             if (!protect(tunnel.socket())) {
                 mHandler.sendEmptyMessage(R.string.error);
                 throw new IllegalStateException("Cannot protect the tunnel");
             }
 
-            // Connect to the server.
+            // 链接到服务器
             tunnel.connect(server);
 
-            // For simplicity, we use the same thread for both reading and
-            // writing. Here we put the tunnel into non-blocking mode.
+            // 为简单起见,我们使用相同的阅读和线程
+            // 写作。在这里我们把隧道进入非阻塞模式。
             tunnel.configureBlocking(false);
 
-            // Authenticate and configure the virtual network interface.
+            // 验证和配置虚拟网络接口。
             handshake(tunnel);
 
-            // Now we are connected. Set the flag and show the message.
+            // 现在我们联系。设置标志和显示信息。
             connected = true;
             mHandler.sendEmptyMessage(R.string.connected);
 
-            // Packets to be sent are queued in this input stream.
+            // 发送数据包排队在这个输入流。
             FileInputStream in = new FileInputStream(mInterface.getFileDescriptor());
 
-            // Packets received need to be written to this output stream.
+            // 接收到的数据包需要写入输出流。
             FileOutputStream out = new FileOutputStream(mInterface.getFileDescriptor());
 
-            // Allocate the buffer for a single packet.
+            //为一个数据包分配缓冲区。
             ByteBuffer packet = ByteBuffer.allocate(32767);
 
-            // We use a timer to determine the status of the tunnel. It
-            // works on both sides. A positive value means sending, and
-            // any other means receiving. We start with receiving.
+            // 我们使用一个计时器来确定隧道的状态。它双方的工作。正数意味着发送,和任何其他方式接收。我们从收到开始。
             int timer = 0;
 
             // We keep forwarding packets till something goes wrong.
@@ -253,6 +258,12 @@ public class VPNService extends VpnService implements Handler.Callback, Runnable
         return connected;
     }
 
+    /**
+     * 验证和配置虚拟网络接口。
+     *
+     * @param tunnel
+     * @throws Exception
+     */
     private void handshake(DatagramChannel tunnel) throws Exception {
         // To build a secured tunnel, we should perform mutual authentication
         // and exchange session keys for encryption. To keep things simple in
